@@ -290,6 +290,16 @@ app.get('/admin-certificacoes/api', (req, res) => {
 });
 
 // ============================================================================
+// REDIRECIONAR /admin-certificacoes (sem barra) PARA /admin-certificacoes/
+// ============================================================================
+
+// Capturar /admin-certificacoes sem barra final e redirecionar para versão com barra
+app.get('/admin-certificacoes', (req, res) => {
+  console.log('🔄 [Redirect] Redirecionando /admin-certificacoes para /admin-certificacoes/');
+  res.redirect(301, '/admin-certificacoes/');
+});
+
+// ============================================================================
 // SERVIR ARQUIVOS ESTÁTICOS DO FRONTEND
 // ============================================================================
 
