@@ -1,6 +1,7 @@
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
+const path = require('path');
 
 // ============================================================================
 // IMPORTAR DATABASE - ISSO É CRÍTICO!
@@ -289,6 +290,53 @@ app.get('/admin-certificacoes/api', (req, res) => {
 });
 
 // ============================================================================
+// SERVIR ARQUIVOS ESTÁTICOS DO FRONTEND
+// ============================================================================
+
+// Caminho para a pasta dist do frontend (assumindo que está na raiz do projeto)
+const frontendDistPath = path.join(__dirname, '../../dist');
+
+// Servir arquivos estáticos da pasta dist
+app.use('/admin-certificacoes', express.static(frontendDistPath, {
+  maxAge: '1y',
+  etag: true,
+  lastModified: true,
+  setHeaders: (res, filePath) => {
+    // Cache mais agressivo para assets (JS, CSS, imagens)
+    if (filePath.match(/\.(js|css|png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|eot)$/)) {
+      res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+    }
+    // Não fazer cache do index.html
+    if (filePath.endsWith('index.html')) {
+      res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+    }
+  }
+}));
+
+// ============================================================================
+// SPA FALLBACK - DEVE VIR DEPOIS DE TODAS AS ROTAS DA API
+// ============================================================================
+
+// Fallback para SPA: qualquer rota que não seja da API deve retornar o index.html
+// para que o React Router possa lidar com o roteamento do frontend
+app.get('/admin-certificacoes/*', (req, res, next) => {
+  // Se a rota começar com /admin-certificacoes/api, pular este middleware
+  if (req.path.startsWith('/admin-certificacoes/api')) {
+    return next();
+  }
+
+  // Para todas as outras rotas do frontend, servir o index.html
+  const indexPath = path.join(frontendDistPath, 'index.html');
+  console.log('🔄 [SPA Fallback] Servindo index.html para:', req.path);
+  res.sendFile(indexPath, (err) => {
+    if (err) {
+      console.error('❌ [SPA Fallback] Erro ao servir index.html:', err.message);
+      next(err);
+    }
+  });
+});
+
+// ============================================================================
 // ERROR HANDLERS
 // ============================================================================
 
@@ -302,7 +350,7 @@ app.use((err, req, res, next) => {
   });
 });
 
-// 404 handler
+// 404 handler - só será chamado se nenhuma rota anterior corresponder
 app.use((req, res) => {
   console.warn('⚠️  [404] Rota não encontrada:', req.method, req.path);
   res.status(404).json({
