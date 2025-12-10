@@ -293,8 +293,9 @@ app.get('/admin-certificacoes/api', (req, res) => {
 // SERVIR ARQUIVOS ESTÁTICOS DO FRONTEND
 // ============================================================================
 
-// Caminho para a pasta dist do frontend (assumindo que está na raiz do projeto)
-const frontendDistPath = path.join(__dirname, '../../dist');
+// Caminho para a pasta raiz onde estão os arquivos do frontend
+// No cPanel/prod, os arquivos estão extraídos diretamente em admin-certificacoes/
+const frontendDistPath = path.join(__dirname, '../..');
 
 // Servir arquivos estáticos da pasta dist
 app.use('/admin-certificacoes', express.static(frontendDistPath, {

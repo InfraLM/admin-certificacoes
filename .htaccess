@@ -1,0 +1,67 @@
+# DO NOT REMOVE. CLOUDLINUX PASSENGER CONFIGURATION BEGIN
+PassengerAppRoot "/home/liberdademedicae/public_html/admin-certificacoes/backend"
+PassengerBaseURI "/admin-certificacoes"
+PassengerNodejs "/home/liberdademedicae/nodevenv/public_html/admin-certificacoes/backend/19/bin/node"
+PassengerAppType node
+PassengerStartupFile src/index.js
+# DO NOT REMOVE. CLOUDLINUX PASSENGER CONFIGURATION END
+
+# DO NOT REMOVE OR MODIFY. CLOUDLINUX ENV VARS CONFIGURATION BEGIN
+<IfModule Litespeed>
+SetEnv CORS_ORIGINS https://liberdademedicaedu.com.br,http://localhost:5173,http://localhost:3000,http://localhost:8080
+SetEnv NODE_ENV production
+SetEnv PORT 3001
+SetEnv VITE_API_URL https://liberdademedicaedu.com.br/admin-certificacoes/api
+SetEnv DB_HOST 35.199.101.38
+SetEnv DB_PORT 5432
+SetEnv DB_NAME liberdade-medica
+SetEnv DB_USER lovable
+SetEnv DB_PASSWORD XqH+B5tdvyR-AebQ
+</IfModule>
+# DO NOT REMOVE OR MODIFY. CLOUDLINUX ENV VARS CONFIGURATION END
+
+# ============================================================================
+# CONFIGURAÇÃO PARA SPA (Single Page Application)
+# ============================================================================
+
+# Habilitar RewriteEngine
+RewriteEngine On
+
+# Não reescrever requisições para a API (deixar Passenger gerenciar)
+RewriteCond %{REQUEST_URI} ^/admin-certificacoes/api/ [OR]
+RewriteCond %{REQUEST_URI} ^/admin-certificacoes/backend/
+RewriteRule ^ - [L]
+
+# Não reescrever arquivos e diretórios que existem fisicamente
+RewriteCond %{REQUEST_FILENAME} -f [OR]
+RewriteCond %{REQUEST_FILENAME} -d
+RewriteRule ^ - [L]
+
+# SPA Fallback: redirecionar todas as outras rotas para index.html
+# para que o React Router possa gerenciar o roteamento do frontend
+RewriteCond %{REQUEST_URI} ^/admin-certificacoes/
+RewriteRule ^ /admin-certificacoes/index.html [L]
+
+# ============================================================================
+# HEADERS E CACHE
+# ============================================================================
+<IfModule mod_headers.c>
+    # Cache para assets (JS, CSS, imagens)
+    <FilesMatch "\.(js|css|png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|eot)$">
+        Header set Cache-Control "public, max-age=31536000, immutable"
+    </FilesMatch>
+
+    # Não fazer cache do index.html
+    <FilesMatch "index\.html$">
+        Header set Cache-Control "no-cache, no-store, must-revalidate"
+        Header set Pragma "no-cache"
+        Header set Expires "0"
+    </FilesMatch>
+</IfModule>
+
+# ============================================================================
+# COMPRESSÃO GZIP
+# ============================================================================
+<IfModule mod_deflate.c>
+    AddOutputFilterByType DEFLATE text/html text/plain text/xml text/css text/javascript application/javascript application/json
+</IfModule>
