@@ -253,27 +253,34 @@ exports.update = async (req, res) => {
 
     // Handle turma transfer if turma_id is provided
     if (turma_id) {
-      // 1. Remove existing enrollments (to ensure they are only in one active class, or at least move them)
-      // Note: If you want to keep history, you might want to update status instead of delete.
-      // But user request implies "moving" so they don't count in the old one.
-      await query(`DELETE FROM ${TABLES.ALUNO_TURMA} WHERE aluno_id = $1`, [id]);
+      // Check if student already has a record in ci_aluno_turma
+      const existingRecord = await query(
+        `SELECT id FROM ${TABLES.ALUNO_TURMA} WHERE aluno_id = $1`,
+        [id]
+      );
 
-      // 2. Add to new turma
-      const alunoTurmaId = crypto.randomUUID();
-      const today = new Date();
-      const formattedDate = `${String(today.getDate()).padStart(2, '0')}/${String(today.getMonth() + 1).padStart(2, '0')}/${today.getFullYear()}`;
-      // We use the date from frontend or today. Since this is a transfer, maybe use today as enrollment date in new class?
-      // Or keep original matricula? Let's use today for the new class enrollment date.
-
-      // Need to parse date for DB if column is DATE
       const todayDB = getTodayDB();
 
-      await query(`
-        INSERT INTO ${TABLES.ALUNO_TURMA} (id, aluno_id, turma_id, data_matricula, status)
-        VALUES ($1, $2, $3, $4, $5)
-      `, [alunoTurmaId, id, turma_id, todayDB, 'Inscrito']);
+      if (existingRecord.rows.length > 0) {
+        // UPDATE existing record with new turma_id
+        // This prevents duplicate entries in class occupancy views
+        await query(`
+          UPDATE ${TABLES.ALUNO_TURMA} 
+          SET turma_id = $1, data_matricula = $2
+          WHERE aluno_id = $3
+        `, [turma_id, todayDB, id]);
 
-      console.log(`✅ [Alunos] Aluno ${id} transferido para turma ${turma_id}`);
+        console.log(`✅ [Alunos] Aluno ${id} transferido para turma ${turma_id} (UPDATE)`);
+      } else {
+        // INSERT new record if student doesn't have one yet
+        const alunoTurmaId = crypto.randomUUID();
+        await query(`
+          INSERT INTO ${TABLES.ALUNO_TURMA} (id, aluno_id, turma_id, data_matricula, status)
+          VALUES ($1, $2, $3, $4, $5)
+        `, [alunoTurmaId, id, turma_id, todayDB, 'Inscrito']);
+
+        console.log(`✅ [Alunos] Aluno ${id} vinculado à turma ${turma_id} (INSERT)`);
+      }
     }
 
     res.json(formatAluno(result.rows[0]));
